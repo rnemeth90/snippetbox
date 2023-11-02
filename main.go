@@ -6,18 +6,24 @@ import (
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello from snippetbox!"))
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello from snippetbox!"))
 }
 
 func snippetView(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Display a specific snippet..."))
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Display a specific snippet..."))
 }
 
 func snippetCreate(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Create a new snippet..."))
+	if r.Method != "POST" {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Create a new snippet..."))
 }
 
 func main() {
