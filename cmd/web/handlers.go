@@ -8,6 +8,14 @@ import (
 	"strconv"
 )
 
+type myObject struct {
+	some string
+}
+
+func (m *myObject) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(m.some))
+}
+
 func home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -21,15 +29,15 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	template, err := template.ParseFiles(files...)
-	if err != nil {
-		log.Print(err.Error())
+	if err != nil || template == nil{
+		log.Println(err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
-	}
+	}facebook_admin
 
 	err = template.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		log.Print(err.Error())
+		log.Println(err.Error())
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }
