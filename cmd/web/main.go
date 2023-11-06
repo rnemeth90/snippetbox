@@ -13,6 +13,10 @@ var (
 	addr string
 )
 
+type application struct {
+	logger *slog.Logger
+}
+
 func init() {
 	pflag.StringVar(&addr, "addr", ":4000", "address:port to listen on")
 	pflag.Usage = usage
@@ -25,23 +29,10 @@ func usage() {
 func main() {
 	pflag.Parse()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))
+	app := application{logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug}))}
 
-	s := myObject{some: "Hello"}
-	mux := http.NewServeMux()
+	app.logger.Info("starting server on %s\n", addr)
 
-	fs := http.FileServer(http.Dir("./ui/static/"))
-
-	mux.Handle("/static/", http.StripPrefix("/static", fs))
-
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet/view", snippetView)
-	mux.HandleFunc("/snippet/create", snippetCreate)
-	mux.Handle("/s", &s)
-
-	log.Printf("starting server on %s\n", addr)
-	logger.Info("starting server on %s\n", addr)
-
-	err := http.ListenAndServe(addr, mux)
+	err := http.ListenAndServe(addr, app.routes())
 	log.Fatal(err)
 }
