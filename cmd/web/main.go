@@ -26,7 +26,7 @@ type application struct {
 
 func init() {
 	pflag.StringVar(&addr, "addr", ":4000", "address:port to listen on")
-	pflag.StringVar(&dsn, "dsn", "web:Password@01@/snippetbox?parseTime=true", "MySQL DSN")
+	pflag.StringVar(&dsn, "dsn", "web:pass@/snippetbox?parseTime=true", "MySQL DSN")
 	pflag.Usage = usage
 }
 
