@@ -3,7 +3,7 @@ package models
 import "errors"
 
 var (
-	ErrNoRecord                     = errors.New("models: no matching record found")
+	ErrNoRecord         = errors.New("models: no matching record found")
 	InvalidCredentials = errors.New("models: invalid credentials")
-	DuplicateEmail         = errors.New("models: duplicate email")
+	ErrDuplicateEmail   = errors.New("models: duplicate email")
 )
