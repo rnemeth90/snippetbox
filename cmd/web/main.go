@@ -69,24 +69,24 @@ func main() {
 	app := &application{
 		logger:         logger,
 		templateCache:  templateCache,
-		users: &models.UserModel{DB: db},
-		snippets:        &models.SnippetModel{DB: db},
-		formDecoder:       formDecoder,
+		users:          &models.UserModel{DB: db},
+		snippets:       &models.SnippetModel{DB: db},
+		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
 	}
 
-	    tlsConfig := &tls.Config{
-        CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
-    }
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
 
 	server := http.Server{
-		Addr:    addr,
-		Handler: app.routes(),
-		ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError),
-		IdleTimeout: time.Minute,
-		ReadTimeout: 5 * time.Second,
+		Addr:         addr,
+		Handler:      app.routes(),
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		TLSConfig: tlsConfig,
+		TLSConfig:    tlsConfig,
 	}
 
 	logger.Info("starting server", "addr", server.Addr)
