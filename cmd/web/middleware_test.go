@@ -22,7 +22,7 @@ func TestSecureHeaders(t *testing.T) {
 		w.Write([]byte("OK"))
 	})
 
-	secureHeaders(next).ServeHTTP(recorder,  request)
+	secureHeaders(next).ServeHTTP(recorder, request)
 	response := recorder.Result()
 
 	expectedValue := "default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com"
@@ -48,8 +48,8 @@ func TestSecureHeaders(t *testing.T) {
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
-}
-	
+	}
+
 	body = bytes.TrimSpace(body)
 
 	assert.Equal(t, string(body), "OK")

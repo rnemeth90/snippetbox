@@ -12,8 +12,8 @@ func noSurf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
 	csrfHandler.SetBaseCookie(http.Cookie{
 		HttpOnly: true,
-		Path: "/", 
-		Secure: true,
+		Path:     "/",
+		Secure:   true,
 	})
 
 	return csrfHandler
@@ -76,7 +76,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 
 		id := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
 		if id == 0 {
-			next.ServeHTTP(w,r)
+			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -91,6 +91,6 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 		}
 
-		next.ServeHTTP(w,r)
+		next.ServeHTTP(w, r)
 	})
 }
