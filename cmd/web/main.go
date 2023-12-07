@@ -18,8 +18,9 @@ import (
 )
 
 var (
-	addr string
-	dsn  string
+	addr           string
+	dsn            string
+	debugMode bool
 )
 
 type application struct {
@@ -29,10 +30,12 @@ type application struct {
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
+	debugMode           bool
 }
 
 func init() {
 	pflag.StringVar(&addr, "addr", ":4000", "address:port to listen on")
+	pflag.BoolVar(&debugMode, "debug", false, "debug mode")
 	pflag.StringVar(&dsn, "dsn", "web:pass@/snippetbox?parseTime=true", "MySQL DSN")
 	pflag.Usage = usage
 }
@@ -73,6 +76,7 @@ func main() {
 		snippets:       &models.SnippetModel{DB: db},
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
+		debugMode: debugMode,
 	}
 
 	tlsConfig := &tls.Config{

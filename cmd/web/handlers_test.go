@@ -8,6 +8,36 @@ import (
 	"github.com/rnemeth90/snippetbox/internal/assert"
 )
 
+func TestSnippetCreate(t *testing.T) {
+	app := newTestApplication(t)
+	ts := newTestServer(t, app.routes())
+	defer ts.Close()
+
+	t.Run("Unauthenticated", func(t *testing.T) {
+		statusCode, headers, _ := ts.get(t, "/snippet/create")
+
+		assert.Equal(t, statusCode, http.StatusSeeOther)
+		assert.Equal(t, headers.Get("Location"), "/user/login")
+	})
+
+	t.Run("Authenticated", func(t *testing.T) {
+		, _, body := ts.get(t, "/user/login")
+		csrfToken := extractCSRFToken(t, body)
+
+		form := url.Values{}
+		form.Add("email", "alice@example.com")
+		form.Add("password", "pa$$word")
+		form.Add("csrf_token", csrfToken)
+
+		ts.postForm(t, "/user/login", form)
+
+		statusCode, _, body := ts.get(t, "/snippet/create")
+
+		assert.Equal(t, statusCode, http.StatusOK)
+		sert.StringContains(t, body, "<form action='/snippet/create' method='POST'>")
+	})
+}
+
 func TestUserSignup(t *testing.T) {
 	app := newTestApplication(t)
 	ts := newTestServer(t, app.routes())

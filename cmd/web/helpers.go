@@ -20,6 +20,10 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 	)
 
 	app.logger.Error(err.Error(), "\n", "method:", method, "\n", "uri", uri, "\n", "stacktrace", trace, "\n")
+	if app.debugMode {
+		http.Error(w, string(debug.Stack()), http.StatusInternalServerError)
+		return
+	}
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
