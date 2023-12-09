@@ -32,6 +32,24 @@ type userSignupForm struct {
 	validator.Validator `form:"-"`
 }
 
+func (app *application) accountView(w http.ResponseWriter, r *http.Request) {
+	authUserID := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
+
+	user, err := app.users.Get(authUserID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	templateData := app.newTemplateData(r)
+	templateData.User = user
+	app.render(w, r, http.StatusOK, "account.tmpl.html", templateData)
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	snippets, err := app.snippets.Latest()
 	if err != nil {

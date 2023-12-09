@@ -13,6 +13,10 @@ func (m *UserModel) Insert(name, email, password string) error {
 	}
 }
 
+func (m *UserModel) Get(id int) (models.User, error) {
+	return models.User{}, nil
+}
+
 func (m *UserModel) Authenticate(email, password string) (int, error) {
 	if email == "alice@example.com" && password == "pa$$word" {
 		return 1, nil

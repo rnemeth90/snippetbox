@@ -21,7 +21,7 @@ func TestSnippetCreate(t *testing.T) {
 	})
 
 	t.Run("Authenticated", func(t *testing.T) {
-		, _, body := ts.get(t, "/user/login")
+	  _, _, body := ts.get(t, "/user/login")
 		csrfToken := extractCSRFToken(t, body)
 
 		form := url.Values{}
@@ -34,7 +34,7 @@ func TestSnippetCreate(t *testing.T) {
 		statusCode, _, body := ts.get(t, "/snippet/create")
 
 		assert.Equal(t, statusCode, http.StatusOK)
-		sert.StringContains(t, body, "<form action='/snippet/create' method='POST'>")
+    assert.StringContains(t, body, "<form action='/snippet/create' method='POST'>")
 	})
 }
 

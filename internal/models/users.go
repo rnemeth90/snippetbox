@@ -13,6 +13,7 @@ import (
 type UserModelInterface interface {
 	Insert(name, email, password string) error
 	Authenticate(email, password string) (int, error)
+	Get(id int) (User, error)
 	Exists(id int) (bool, error)
 }
 
