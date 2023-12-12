@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	addr           string
-	dsn            string
+	addr      string
+	dsn       string
 	debugMode bool
 )
 
@@ -30,7 +30,7 @@ type application struct {
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
-	debugMode           bool
+	debugMode      bool
 }
 
 func init() {
@@ -76,7 +76,7 @@ func main() {
 		snippets:       &models.SnippetModel{DB: db},
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
-		debugMode: debugMode,
+		debugMode:      debugMode,
 	}
 
 	tlsConfig := &tls.Config{

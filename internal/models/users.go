@@ -29,6 +29,25 @@ type UserModel struct {
 	DB *sql.DB
 }
 
+func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
+	var user User
+
+	stmt := `SELECT hashed_password FROM users WHERE id = ?`
+	m.DB.QueryRow(stmt, id).Scan(&user.HashedPassword)
+	hash := &user.HashedPassword
+
+	err := bcrypt.CompareHashAndPassword(*hash, []byte(currentPassword))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return ErrInvalidCredentials
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *UserModel) Get(id int) (User, error) {
 	var user User
 
@@ -40,7 +59,7 @@ func (m *UserModel) Get(id int) (User, error) {
 		return User{}, err
 	}
 
-  stmt := `SELECT id, name, email, created FROM users WHERE id = ?`
+	stmt := `SELECT id, name, email, created FROM users WHERE id = ?`
 	m.DB.QueryRow(stmt, id).Scan(&user.ID, &user.Name, &user.Email, &user.Created)
 	return user, nil
 }
