@@ -15,6 +15,7 @@ type UserModelInterface interface {
 	Authenticate(email, password string) (int, error)
 	Get(id int) (User, error)
 	Exists(id int) (bool, error)
+	PasswordUpdate(id int, currentPassword, newPassword string) error
 }
 
 type User struct {
@@ -45,7 +46,15 @@ func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) 
 		}
 	}
 
-	return nil
+	newPasswordhash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+
+	stmt = `UPDATE users SET hashed_password = ? WHERE id = ?`
+
+	_, err = m.DB.Exec(stmt, string(newPasswordhash), id)
+	return err
 }
 
 func (m *UserModel) Get(id int) (User, error) {
