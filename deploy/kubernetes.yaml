@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: snippetbox-db
+type: Opaque
+stringData:
+  username: web
+  password: password
+  dsn: postgres://web:password@postgres:5432/snippetbox?sslmode=disable
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: snippetbox
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: snippetbox-db
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: snippetbox-db
+                  key: password
+          readinessProbe:
+            exec:
+              command:
+                ['sh', '-c', 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
+            periodSeconds: 5
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+              subPath: data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ['ReadWriteOnce']
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snippetbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snippetbox
+  template:
+    metadata:
+      labels:
+        app: snippetbox
+    spec:
+      containers:
+        - name: snippetbox
+          image: ghcr.io/rnemeth90/snippetbox:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 4000
+          env:
+            - name: DB_DRIVER
+              value: postgres
+            - name: DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: snippetbox-db
+                  key: dsn
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: snippetbox
+spec:
+  selector:
+    app: snippetbox
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP

@@ -21,12 +21,13 @@ type Snippet struct {
 }
 
 type SnippetModel struct {
-	DB *sql.DB
+	DB      *sql.DB
+	Dialect string
 }
 
 func (m *SnippetModel) Get(id int) (Snippet, error) {
-	statement := `SELECT id, title, content, created, expires FROM snippets
-								WHERE expires > UTC_TIMESTAMP() and id = ?`
+	statement := bindQuery(`SELECT id, title, content, created, expires FROM snippets
+								WHERE expires > CURRENT_TIMESTAMP and id = ?`, m.Dialect)
 
 	row := m.DB.QueryRow(statement, id)
 
@@ -45,23 +46,21 @@ func (m *SnippetModel) Get(id int) (Snippet, error) {
 }
 
 func (m *SnippetModel) Insert(title string, content string, expires int) (int, error) {
-	statement := `INSERT INTO snippets (title, content, created, expires) VALUES(?,?,UTC_TIMESTAMP(), DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY))`
+	statement := bindQuery(`INSERT INTO snippets (title, content, created, expires) VALUES(?,?,?,?)`, m.Dialect)
+	now := time.Now().UTC()
+	expiry := now.AddDate(0, 0, expires)
 
-	result, err := m.DB.Exec(statement, title, content, expires)
+	var id int
+	err := m.DB.QueryRow(statement+` RETURNING id`, title, content, now, expiry).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return int(id), nil
+	return id, nil
 }
 
 func (m *SnippetModel) Latest() ([]Snippet, error) {
 	statement := `SELECT id, title, content, created, expires FROM snippets
-	WHERE expires > UTC_TIMESTAMP() ORDER BY id DESC LIMIT 10`
+	WHERE expires > CURRENT_TIMESTAMP ORDER BY id DESC LIMIT 10`
 
 	rows, err := m.DB.Query(statement)
 	if err != nil {

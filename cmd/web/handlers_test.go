@@ -165,6 +165,33 @@ func TestPing(t *testing.T) {
 	assert.Equal(t, body, "OK")
 }
 
+func TestHealthChecks(t *testing.T) {
+	app := newTestApplication(t)
+	db, err := openDB("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	app.db = db
+
+	ts := newTestServer(t, app.routes())
+	defer ts.Close()
+
+	for _, path := range []string{"/livez", "/readyz"} {
+		t.Run(path, func(t *testing.T) {
+			code, _, body := ts.get(t, path)
+			assert.Equal(t, code, http.StatusOK)
+			assert.Equal(t, body, "OK")
+		})
+	}
+
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	code, _, _ := ts.get(t, "/readyz")
+	assert.Equal(t, code, http.StatusServiceUnavailable)
+}
+
 func TestSnippetView(t *testing.T) {
 	app := newTestApplication(t)
 

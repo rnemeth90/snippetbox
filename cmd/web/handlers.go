@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/rnemeth90/snippetbox/internal/models"
@@ -225,7 +227,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 
 			data := app.newTemplateData(r)
 			data.Form = form
-			app.render(w, r, http.StatusUnprocessableEntity, "signup.tmpl", data)
+			app.render(w, r, http.StatusUnprocessableEntity, "signup.tmpl.html", data)
 		} else {
 			app.serverError(w, r, err)
 		}
@@ -299,5 +301,24 @@ func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
+}
+
+func livez(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
+}
+
+func (app *application) readyz(w http.ResponseWriter, r *http.Request) {
+	if app.db == nil {
+		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second)
+	defer cancel()
+	if err := app.db.PingContext(ctx); err != nil {
+		http.Error(w, "database unavailable", http.StatusServiceUnavailable)
+		return
+	}
 	w.Write([]byte("OK"))
 }

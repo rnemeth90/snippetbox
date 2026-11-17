@@ -19,6 +19,8 @@ func (app *application) routes() http.Handler {
 	router.Handler(http.MethodGet, "/static/*filepath", fs)
 
 	router.HandlerFunc(http.MethodGet, "/ping", ping)
+	router.HandlerFunc(http.MethodGet, "/livez", livez)
+	router.HandlerFunc(http.MethodGet, "/readyz", app.readyz)
 
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
 

@@ -3,10 +3,10 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"strings"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
+	"github.com/lib/pq"
+	"github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,13 +27,14 @@ type User struct {
 }
 
 type UserModel struct {
-	DB *sql.DB
+	DB      *sql.DB
+	Dialect string
 }
 
 func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) error {
 	var user User
 
-	stmt := `SELECT hashed_password FROM users WHERE id = ?`
+	stmt := bindQuery(`SELECT hashed_password FROM users WHERE id = ?`, m.Dialect)
 	m.DB.QueryRow(stmt, id).Scan(&user.HashedPassword)
 	hash := &user.HashedPassword
 
@@ -51,9 +52,9 @@ func (m *UserModel) PasswordUpdate(id int, currentPassword, newPassword string) 
 		return err
 	}
 
-	stmt = `UPDATE users SET hashed_password = ? WHERE id = ?`
+	stmt = bindQuery(`UPDATE users SET hashed_password = ? WHERE id = ?`, m.Dialect)
 
-	_, err = m.DB.Exec(stmt, string(newPasswordhash), id)
+	_, err = m.DB.Exec(stmt, newPasswordhash, id)
 	return err
 }
 
@@ -68,7 +69,7 @@ func (m *UserModel) Get(id int) (User, error) {
 		return User{}, err
 	}
 
-	stmt := `SELECT id, name, email, created FROM users WHERE id = ?`
+	stmt := bindQuery(`SELECT id, name, email, created FROM users WHERE id = ?`, m.Dialect)
 	m.DB.QueryRow(stmt, id).Scan(&user.ID, &user.Name, &user.Email, &user.Created)
 	return user, nil
 }
@@ -79,38 +80,34 @@ func (m *UserModel) Insert(name, email, password string) error {
 		return err
 	}
 
-	stmt := `INSERT INTO users (name, email, hashed_password, created)
-    VALUES(?, ?, ?, UTC_TIMESTAMP())`
+	stmt := bindQuery(`INSERT INTO users (name, email, hashed_password, created)
+    VALUES(?, ?, ?, ?)`, m.Dialect)
 
-	// Use the Exec() method to insert the user details and hashed password
-	// into the users table.
-	_, err = m.DB.Exec(stmt, name, email, string(hashedPassword))
+	_, err = m.DB.Exec(stmt, name, email, hashedPassword, time.Now().UTC())
 	if err != nil {
-		// If this returns an error, we use the errors.As() function to check
-		// whether the error has the type *mysql.MySQLError. If it does, the
-		// error will be assigned to the mySQLError variable. We can then check
-		// whether or not the error relates to our users_uc_email key by
-		// checking if the error code equals 1062 and the contents of the error
-		// message string. If it does, we return an ErrDuplicateEmail error.
-		var mySQLError *mysql.MySQLError
-		if errors.As(err, &mySQLError) {
-			if mySQLError.Number == 1062 && strings.Contains(mySQLError.Message, "users_uc_email") {
-				return ErrDuplicateEmail
-			}
-			return err
+		if isDuplicateEmailError(err) {
+			return ErrDuplicateEmail
 		}
+		return err
 	}
 	return nil
 }
 
-// We'll use the Authenticate method to verify whether a user exists with
-// the provided email address and password. This will return the relevant
-// user ID if they do.
+func isDuplicateEmailError(err error) bool {
+	var postgresError *pq.Error
+	if errors.As(err, &postgresError) {
+		return postgresError.Code == "23505" && postgresError.Constraint == "users_email_key"
+	}
+
+	var sqliteError sqlite3.Error
+	return errors.As(err, &sqliteError) && sqliteError.ExtendedCode == sqlite3.ErrConstraintUnique
+}
+
 func (m *UserModel) Authenticate(email string, password string) (int, error) {
 	var id int
 	var hashedPassword []byte
 
-	row := m.DB.QueryRow("SELECT id, hashed_password FROM users WHERE email = ?", email)
+	row := m.DB.QueryRow(bindQuery("SELECT id, hashed_password FROM users WHERE email = ?", m.Dialect), email)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -131,10 +128,9 @@ func (m *UserModel) Authenticate(email string, password string) (int, error) {
 	return id, nil
 }
 
-// We'll use the Exists method to check if a user exists with a specific ID.
 func (m *UserModel) Exists(id int) (bool, error) {
 	var exists bool
-	stmt := `SELECT EXISTS(SELECT true FROM users WHERE id = ?)`
+	stmt := bindQuery(`SELECT EXISTS(SELECT true FROM users WHERE id = ?)`, m.Dialect)
 	err := m.DB.QueryRow(stmt, id).Scan(&exists)
 	return exists, err
 }
